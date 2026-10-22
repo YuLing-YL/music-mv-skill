@@ -1,0 +1,101 @@
+{
+  "name": "music_mv",
+  "version": "1.3.0",
+  "description": "音乐MV生成技能：输入自由，用户用一句自然语言随意描述即可（歌名、画风、剧情、人物，说多少算多少）；缺歌名就追问，缺其他项走默认或智能推断。支持本地/链接音频或联网找歌，可整曲或片段生成；解析音频节拍与歌词，生成分镜表（需用户确认），逐段渲染卡点动画，ffmpeg合成完整MV并自检交付。",
+  "trigger": [
+    "生成MV",
+    "音乐视频",
+    "歌曲做成视频",
+    "music video",
+    "分镜表",
+    "卡点视频",
+    "给我用XX歌做个MV",
+    "帮我做MV"
+  ],
+  "tools": [
+    "get_audio_shturl",
+    "parse_lrc",
+    "split_audio_section",
+    "generate_storyboard",
+    "render_frame_segment",
+    "ffmpeg_concat",
+    "save_file",
+    "read_file"
+  ],
+  "params": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "description": "所有参数均可选：用户可用自然语言随意描述（user_input），也可结构化传参；缺歌名时主流程追问，其余缺失项走默认或从描述中智能提取。",
+    "properties": {
+      "user_input": {
+        "type": "string",
+        "description": "用户的自由文本描述，想说多少说多少：歌名、画风、剧情、人物、想要哪一段……由主流程解析成结构化参数"
+      },
+      "song_name": {
+        "type": "string",
+        "description": "歌曲名称（可含歌手名）；可从user_input中提取，也可联网搜索获取音频"
+      },
+      "audio_url": {
+        "type": "string",
+        "description": "音频来源：外链URL或本地文件路径；与song_name可互换"
+      },
+      "style": {
+        "type": "string",
+        "description": "画风描述，自由文本；未指定时主流程根据歌曲情绪智能推断或提供3个候选让用户选"
+      },
+      "plot": {
+        "type": "string",
+        "description": "剧情线描述（可选）；如「一个宇航员在星际漂流中回忆地球」，无剧情则走纯视觉向"
+      },
+      "characters": {
+        "type": "string",
+        "description": "核心人物/角色设定（可选），如「银发少女AI，穿全息斗篷」；无人物则用抽象意象"
+      },
+      "save_to_local": {
+        "type": "boolean",
+        "default": true,
+        "description": "歌名搜索模式下是否把音频下载保存到本地缓存；true=下载到本地，false=仅用临时句柄不落盘"
+      },
+      "clip_start": {
+        "type": "number",
+        "minimum": 0,
+        "description": "片段模式：MV起始时间（秒，原曲时间轴）；与clip_end或section配合使用，不传则整曲生成"
+      },
+      "clip_end": {
+        "type": "number",
+        "minimum": 0,
+        "description": "片段模式：MV结束时间（秒，原曲时间轴）；与clip_start配合使用"
+      },
+      "section": {
+        "type": "string",
+        "enum": ["前奏", "主歌A", "主歌B", "预副歌", "副歌", "间奏", "桥段", "尾奏"],
+        "description": "片段模式：直接指定段落名（如只做副歌）；自动换算为时间范围，与clip_start/clip_end二选一"
+      },
+      "lrc_url": {
+        "type": "string",
+        "description": "LRC歌词文件URL或本地路径，可选；缺失时询问用户"
+      },
+      "need_confirm": {
+        "type": "boolean",
+        "default": true,
+        "description": "分镜表是否需要用户确认后才能渲染；true时必须暂停等待确认"
+      },
+      "subtitle": {
+        "type": "boolean",
+        "default": false,
+        "description": "是否加字幕；默认false，仅用户明确要求时为true"
+      },
+      "resolution": {
+        "type": "string",
+        "default": "1920x1080",
+        "enum": ["1920x1080", "1080x1920", "1280x720"],
+        "description": "输出分辨率"
+      },
+      "output_dir": {
+        "type": "string",
+        "default": "./output/music_mv",
+        "description": "产物输出目录：视频、分镜、节拍json、自检报告"
+      }
+    }
+  }
+}

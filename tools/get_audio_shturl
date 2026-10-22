@@ -1,0 +1,42 @@
+# 工具名称
+get_audio_shturl
+
+描述：
+把音频来源转换为可被下游解析工具稳定访问的短链资源句柄，并探测音频基础信息（格式、大小、时长预估）。支持两种模式：①直接资源化（外部直链 URL、网盘分享、本地文件路径）；②歌名搜索模式——只拿到歌名时，联网搜索并定位可下载的音频资源。是流水线 Step 1 的入口工具。
+
+入参：
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| source | string | 二选一 | 音频来源：http(s) 直链 / 本地绝对路径（与 song_name 互斥，至少传一个） |
+| song_name | string | 二选一 | 歌曲名称，建议含歌手名（如「周杰伦-晴天」），触发歌名搜索模式 |
+| save_to_local | boolean | 否 | 搜索模式下是否下载保存到本地缓存，默认 true；false 时仅返回临时句柄 |
+| cache_dir | string | 否 | 本地缓存目录，默认 ./output/music_mv/cache |
+
+返回值（JSON结构）：
+```json
+{
+  "ok": true,
+  "mode": "search",
+  "matched": { "title": "晴天", "artist": "周杰伦", "album": "叶惠美", "duration_sec": 269.3, "source_site": "example-music.com", "source_url": "https://..." },
+  "shturl": "sht://audio/abc123",
+  "local_cache_path": "./output/music_mv/cache/abc123.mp3",
+  "format": "mp3",
+  "size_bytes": 8421120,
+  "duration_estimate_sec": 269.3,
+  "candidates": [
+    { "title": "晴天", "artist": "周杰伦", "duration_sec": 269.3, "quality": "320kbps" },
+    { "title": "晴天 (Live)", "artist": "周杰伦", "duration_sec": 301.0, "quality": "192kbps" }
+  ],
+  "error": null
+}
+```
+
+约束与注意事项：
+- 歌名搜索模式：优先匹配时长、音质、官方来源；匹配到多个候选时把 candidates 交由用户选择，不要擅自挑一个就往下走。
+- 搜索失败或只有付费/需登录源时返回 ok=false，提示用户改用本地文件或直链，不要尝试绕过付费墙。
+- 仅下载可合法获取的音频资源（免费/开放/已授权来源），禁止抓取明确禁止下载的版权内容。
+- 搜索模式下保存到本地（save_to_local=true）后，后续 Step 4 合成直接使用 local_cache_path。
+- 仅支持 mp3 / wav / m4a / flac；其他格式返回 ok=false 并提示转换。
+- source 为本地路径时必须使用绝对路径。
+- 短链句柄有效期默认 24h，超时需重新调用本工具刷新。
+- 本工具只做资源化与搜索定位，不做节拍分析；不要用它替代 split_audio_section。

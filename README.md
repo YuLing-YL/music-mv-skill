@@ -1,2 +1,62 @@
-# music-mv-skill
-this skill can help you make a mv for a music.you only need to tell agent the music's name and your requirement.it can help you finish the mv.
+# music_mv.skill — 音乐MV生成技能
+
+「音乐进、MV 出」：解析音频节拍与歌词 → 生成分镜表（需确认）→ 逐段渲染卡点动画（误差 ≤0.1s）→ ffmpeg 合成，交付成品视频、分镜表、节拍 json、自检报告。详细流水线与规则见 `SKILL.md`。
+
+## 安装方式
+
+把 `music_mv.skill` 文件夹放入技能目录（如 `./skills/` 或 `~/.workbuddy/skills/`）：
+
+```
+music_mv.skill/
+├── SKILL.md                  # 技能主文档（角色/流水线/规则）
+├── manifest.json             # 机器可读清单与参数 schema
+├── prompts/                  # 系统提示词 / 分镜模板 / 自检清单
+├── tools/                    # 8个工具文档（入参/返回值/约束）
+├── examples/                 # 2个调用示例 + 1份样例分镜
+├── assets/                   # 预留资源目录
+└── README.md
+```
+
+## 调用方式
+
+输入自由，想怎么说就怎么说：
+
+```
+用周杰伦的晴天做个MV
+用晴天的副歌做个赛博朋克风格的MV，主角是个银发机械少女，剧情是她在雨夜找丢失的记忆
+给我做个霓虹流体的MV，歌我发你了（./music.mp3），只要30到60秒那段，发短视频用
+```
+
+- **唯一必须的是「歌」**：歌名或音频文件/链接，缺了只追问这一件事；
+- 其余（画风/剧情/人物/片段/分辨率）说了就用，没说就按歌曲情绪智能推断，分镜确认时可改；
+- 也可结构化传参，与自然语言随意混用：
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| song_name / audio_url | 需追问 | 歌曲名（可联网搜索）或音频路径/链接 |
+| user_input | — | 自由文本描述，主流程自动解析 |
+| style / plot / characters | 智能推断 | 画风 / 剧情线 / 人物设定 |
+| clip_start + clip_end 或 section | 整曲 | 片段模式：时间范围（秒）或段落名，成品时长 = 片段时长 |
+| save_to_local | true | 歌名搜索模式下是否下载保存到本地 |
+| lrc_url | 询问 | LRC 歌词；缺失时会询问 |
+| need_confirm | true | 分镜需确认后才渲染 |
+| subtitle | false | 仅明确要求时开 |
+| resolution | 1920x1080 | 支持 1080x1920 竖屏 |
+| output_dir | ./output/music_mv | 产物输出目录 |
+
+## 依赖安装
+
+```bash
+pip install librosa pydub   # 音频分析
+brew install ffmpeg         # 合成（Linux: apt install ffmpeg）
+```
+
+## 常见坑
+
+1. **分镜确认闸门**：技能暂停等确认不是卡死，不确认就不会开始渲染。
+2. **节拍数据**：只落盘 json、靠摘要沟通，别要求它把节拍列表打印出来。
+3. **画风漂移**：分镜确认时定稿画风；中途改画风必须重走分镜。
+4. **LRC 没有**：技能不编歌词，补 LRC 或明确说走纯器乐模式。
+5. **歌名搜索歧义**：会列出候选让你挑；搜不到或只有付费源时会请你提供文件，是版权限制不是故障。
+6. **拼接失败**：基本都是片段分辨率/帧率/编码器不一致，检查渲染参数是否全程一致。
+7. **卡点总差一点**：检查音频起始有无静音头，可在 sections_hint 给切分提示。
